@@ -1,7 +1,7 @@
-\documentclass{article}
+\documentclass[11pt]{article}
 
 \usepackage{amsmath}
-
+\usepackage[margin=0.5in]{geometry}
 \title{CS 8803: Computation and the Brain Project 1: A parallelism detector}
 
 \author{Vijay Marupudi, Taylor Del Matto, Abrahim Laddha, \& Bianca Smart}
@@ -30,7 +30,7 @@ $$B = \begin{bmatrix}
 
 We can then use Sobel filter convolution to find edges in the horizontal (high values of $H$ matrix) and vertical (high values of $V$ matrix) directions. Pixels in the matrix that are not part of an edge will have a close to 0 value as a result of these filters.
 
-for e.g. 
+for e.g.
 
 \[
 H = \begin{bmatrix}
