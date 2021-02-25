@@ -5,5 +5,29 @@
 \begin{document}
 \maketitle
 
+\textbf{An algorithms that is sensitive to geometric properties of parallelism and convexity}
+
+\subsection{Parallel lines}
+
+\begin{itemize}
+\item run canny filter, but with an additional step. We store continuous runs of edges in a stack
+\item then we use a heuristic to detect whether it is a straight line. This can be a projection onto a linear plane $y = mx + b$. We have a threshold for the error term that is configurable.
+\item Then we use the fitted linear line to determine the angle compared to the x axis.
+\item we then generate a rotational matrix that rotates the image so that the targeted line is flat.
+\item We then create a convolution matrix that corresponds to the line we want to find parallel lines to.
+\item We then run this convolution over the image.
+\item The closer to the sum of all the numbers in the convolutional matrix a specific point is, the higher the probability of there being a parallel line.
+
+\end{itemize}
+
+\subsection{Topology}
+
+\begin{itemize}
+\item use an object detection algorithm to determine the objects in the image.
+\item pick an object to focus on, and then crop the image to only have that object.
+\item run the canny filter, so that only the edge is visible.
+\item run the graham scan algorithm
+\end{itemize}
+
 
 \end{document}
