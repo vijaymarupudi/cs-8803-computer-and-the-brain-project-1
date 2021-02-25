@@ -1,33 +1,111 @@
 \documentclass{article}
 
-\title{CS 8803: Computation and the Brain - Project 1}
+\usepackage{amsmath}
+
+\title{CS 8803: Computation and the Brain Project 1: A parallelism detector}
+
+\author{Vijay Marupudi, Taylor Del Matto, Abrahim Laddha, \& Bianca Smart}
+\date{March 1st, 2021}
 
 \begin{document}
+
 \maketitle
 
-\textbf{An algorithms that is sensitive to geometric properties of parallelism and convexity}
+\section{Algorithm}
 
-\subsection{Parallel lines}
+For the sake of simplicity, we assume that the input image can be represented
+as a matrix of numbers $A$ of dimensions $m$ by $n$ where $A_{ij} \in [0, 1]$. This algorithm leaves the possibility of being extended to color images.
 
-\begin{itemize}
-\item run canny filter, but with an additional step. We store continuous runs of edges in a stack
-\item then we use a heuristic to detect whether it is a straight line. This can be a projection onto a linear plane $y = mx + b$. We have a threshold for the error term that is configurable.
-\item Then we use the fitted linear line to determine the angle compared to the x axis.
-\item we then generate a rotational matrix that rotates the image so that the targeted line is flat.
-\item We then create a convolution matrix that corresponds to the line we want to find parallel lines to.
-\item We then run this convolution over the image.
-\item The closer to the sum of all the numbers in the convolutional matrix a specific point is, the higher the probability of there being a parallel line.
+The edge detection algorithm is a modified version of the Canny edge detector, which can be implemented as a series of convolutions and image filters that are neurally plausible.
 
-\end{itemize}
+We first assume that biological eyes do not perfect resolution of the image
+they are seeing, so we apply a Gaussian convolutional filter over the image to
+get output matrix $B$. This also helps get rid of noise effects on the model.
 
-\subsection{Topology}
+$$B = \begin{bmatrix}
+  0.25 & 0.5 &  0.25 \\
+  0.5 & 1 & 0.5 \\
+  0.25 & 0.5 & 0.25
+\end{bmatrix} * A$$
 
-\begin{itemize}
-\item use an object detection algorithm to determine the objects in the image.
-\item pick an object to focus on, and then crop the image to only have that object.
-\item run the canny filter, so that only the edge is visible.
-\item run the graham scan algorithm
-\end{itemize}
+We can then use Sobel filter convolution to find edges in the horizontal (high values of $H$ matrix) and vertical (high values of $V$ matrix) directions. Pixels in the matrix that are not part of an edge will have a close to 0 value as a result of these filters.
 
+for e.g. 
+
+\[
+H = \begin{bmatrix}
+  1 & 2 & 1 \\
+  0 & 0 & 0 \\
+  -1 & -2 & -1
+\end{bmatrix} * B
+\]
+
+Then we can find the hypotenuse between $H$ and $V$ in order to determine the value of the edge as a specific point in matrix $S$ and the direction in matrix $D$.
+
+\begin{align*}
+  S &= \sqrt{H^2 + V^2} \\
+  D &= \text{atan2}(H, V)
+\end{align*}
+
+Now we can use matrix $S$ and $D$ to find continuous running lines in the image. We first round matrix $D$ to angles of 0, 45, 90, 135 so that it is easy to calculate what the next pixel in a running edge is.
+
+Further edge thinking techniques can be applied using $S$ and $D$, but will not be mentioned to stay within the page limit.
+
+We will now maintain a list of continuous edges in the image. We start at a
+pixel in $S$, and following the running edge until it ends, and store the
+information about the edge run in a list. For $S_{ij}$, we can refer to
+$D_{ij}$ for the direction of the edge. For example, if $D_{ij}$ has been
+rounded to 45 degrees, then the continuing edge is probably at $S_{i+1, j + 1}$
+and $S_{i-1, j-1}$. We then check if the values of $S_{i+1, j+1}$ and $S_{i-1,
+j-1}$ are greater than learnable threshold parameter $\lambda$. If not, we do
+not need to further explore in that direction. If it is greater, then we
+continue down the edge until it is not.
+
+Once an edge is found, we can use a technique similar to linear regression to
+determine whether it is straight, using the x and y values of the pixels to
+find the slope $m$, akin to $mx + b$. This can be done using projection, which
+will also provide use with the error vector $\epsilon$.  Learnable parameter
+$\alpha$ can determine the amount of acceptable error. If $\sum
+\frac{\epsilon^2}{y^2} > \alpha$, then the algorithm will move on the next
+edge, as it is not straight enough. This requirement for the edge to be
+``straight enough'' can be relaxed to make this algorithm adopt other geometric properties like symmetry.
+
+If the error is lower than $\alpha$, then the matrix that describes the edge
+acts like a convolution matrix on matrix $S$, to determine other appropriate
+parallel lines in the image. This edge matrix will be padded with negative
+number on either side to ensure that it is sensitive to other edges and not
+react positively to just white parts of the image. For example, for specific
+edge matrix $E$, we pad it with negative numbers to make $E_\text{convolution}$
+and then convolve it with the edges of the whole image in $S$ to get matrix $P$, with information about parallel lines.
+
+$$E = \begin{bmatrix}
+  1 & 0 & 0 \\
+  0 & 1 & 0 \\
+  0 & 0 & 1
+\end{bmatrix}$$
+
+
+$$E_\text{convolution} = \begin{bmatrix}
+  -1 & -1 & 0 & 0 & 0\\
+  -1 & 1  & -1 & 0 & 0 \\
+  0  & -1 & 1 & -1 & 0 \\
+  0  & 0  & -1 & 1 & -1 \\
+  0  & 0  & 0 & -1 & -1 \\
+\end{bmatrix}$$
+
+$$P = E_\text{convolution} * S$$
+
+Relatively high values in $P$ represent locations in the image that are parallel to the edge.
+
+We can now repeat this algorithm for each edge.
+
+% \subsection{Topology}
+
+% \begin{itemize}
+% \item use an object detection algorithm to determine the objects in the image.
+% \item pick an object to focus on, and then crop the image to only have that object.
+% \item run the canny filter, so that only the edge is visible.
+% \item run the graham scan algorithm
+% \end{itemize}
 
 \end{document}
